@@ -1,22 +1,23 @@
 # TestEQplatform1
-Этот репозиторий содержит код небольшого драйвера ASCOM для экваториальной платформы.
-Вид драйвера: соединение по COM, исполняемый файл EXE.
-Версия платформы ASCOM 7.
-Тип оборудования: Telescope, интерфейс v4
+This repository contains code for a small ASCOM driver for the equatorial platform for astronomical telescope on dobsonian mount.
+Driver type: COM connection, EXE executable file.
+ASCOM platform version 7.
+Equipment type: Telescope, v4 interface.
+The equatorial platform is driven by a NEMA17 stepper motor with a 1:99 planetary gearbox. The motor is controlled via an Arduino Nano board.
 
-Установка:
-Проект ReplaceWithYourName1 содержит непосредственно код драйвера. Для создания установщика драйвера необходимо скачать программу InnoSetup. Также потребуется ASCOM платформа разработчика https://ascom-standards.org/Downloads/PlatDevComponents.htm В папке установки \\ASCOM\Developer\Installer Generator\ отыщите приложение InstallerGen.exe. С его помощью легко создать скрипт для InnoSetup. На полученный таким образом инсталлятор может реагировать Windows Defender - исполняемые файлы будут автоматически удалены.
+Installation:
+The ReplaceWithYourName1 project contains the driver code itself. To create a driver installer, you need to download the InnoSetup program. You will also need the ASCOM developer platform https://ascom-standards.org/Downloads/PlatDevComponents.htm In the installation folder \\ASCOM\Developer\Installer Generator\, find the InstallerGen.exe application. It makes it easy to create a script for InnoSetup. Windows Defender can respond to the installer obtained in this way - the executable files will be automatically deleted.
 
-Дополнительные инструкции по установке https://ascom-standards.org/COMDeveloper/DriverDist.htm
-
-
-Проект WapProjTemplate1 нужен для публикации PowerShell инсталлятора для Windows, в этом случае можно ограничиться средствами Visual Studio и не использовать InnoSetup. Однако будет необходимо зарегестрировать установленный драйвер в платформе ASCOM. https://ascom-standards.org/COMDeveloper/DriverImpl.htm#:~:text=Registering%20(and%20Unregistering)%20for%20ASCOM
+Additional installation instructions https://ascom-standards.org/COMDeveloper/DriverDist.htm
 
 
-Запуск драйвера осуществляется из папки установки 
+The WapProjTemplate1 project is needed to publish a PowerShell installer for Windows; in this case, you can limit yourself to Visual Studio tools and not use InnoSetup. However, it will be necessary to register the installed driver with the ASCOM platform. https://ascom-standards.org/COMDeveloper/DriverImpl.htm#:~:text=Registering%20(and%20Unregistering)%20for%20ASCOM
 
 
-Функционал данной платформы включает:
+The driver is launched from the installation folder
+
+
+The functionality of this platform includes:
 Tracking
 FindHome
-PulseGuide - только по экваториальной оси.
+PulseGuide - equatorial axis only.
