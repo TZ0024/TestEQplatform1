@@ -20,4 +20,4 @@ The driver is launched from the installation folder
 The functionality of this platform includes:
 Tracking
 FindHome
-PulseGuide - equatorial axis only.
+PulseGuide - right ascension axis only.
