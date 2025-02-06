@@ -29,13 +29,14 @@ rampLong myRamp;                               // new int ramp object //новы
 VL53L0X sensor;
 
 //constants, max safe rps = 1000000
-const long fVel = 8310;        //rps = (desired rps / 0.715) * steps * microsteps, desired rps is 10000 revs (reduction rate) per 86164 s (sidereal day) 
+const long fVel = 6940;        //driver rps = (desired rps / 0.715) * steps * microsteps ; desired rps = 835 mm : 10 mm (daimeters of segments design by ReinerVogel to shaft)  * 100 (gearbox) revs / 86164 s (sidereal day) 
 const long rVel = -50000;      //rewind velocity 
-long corrVel = 0;      // correction of targetVel TODO: implement change in PulseGuiding
+long corrVel = 0;      // correction of targetVel
+long pulseVel = 0; // changed in PulseGuiding
 long targetVelOld = 0;
 
 // bools, for EQ platform with motor placed south from segments we need shaft rotation CLOCKWISE
-// sysState variable, 0 = pause, 1 = go forward, 2 = rewind, 3 = pulseguiding, 4 = at home
+// sysState variable, 0 = pause, 1 = go forward, 2 = rewind, 3 = correcting, 4 = at home; 5 = pulseguiding
 uint8_t sysState = 4;
 uint8_t sysStateDEBUG = 0; // for debug
 bool sensorAvalible;
@@ -46,7 +47,7 @@ int pulseDuration;  //TODO use this
 uint8_t pulseDirection; //1 = WEST, 2 = EAST
 unsigned long timer = 0; 
 
-bool driven = true; // 1 if connected to ASCOM driver server, 0 if standalone
+bool driven = true; // 1 if connected to ASCOM driver server, 0 if standalone; for debug messages
 
 //leds blink
 void ledBlink(uint8_t blinkMode) {
@@ -136,7 +137,7 @@ void ledBlink(uint8_t blinkMode) {
         digitalWrite(LED_PIN_11, LOW);
         digitalWrite(LED_PIN_12, HIGH);
 
-        digitalWrite(LED_PIN_5, (corrVel/10));  
+        digitalWrite(LED_PIN_5, HIGH);  
       }
       else if (currentMillis % 1000 == 500){
         digitalWrite(LED_PIN_11, LOW);
@@ -146,7 +147,7 @@ void ledBlink(uint8_t blinkMode) {
     }
     else if (corrVel < 0){
        if (currentMillis % 1000 == 0){
-        digitalWrite(LED_PIN_11, (corrVel/10));
+        digitalWrite(LED_PIN_11, HIGH);
 
         digitalWrite(LED_PIN_12, HIGH);
         digitalWrite(LED_PIN_5, LOW);  
@@ -173,7 +174,7 @@ static Button longBtn(ADJUST_BTN_PIN + 100, longPressHandler);
 void pulseGuide()
 {
   int elapsed = millis() - timer; 
-  if (elapsed <= pulseDuration)        // keep corrVel to +/- 3000 if pulseDuration hasn't ran out
+  if (elapsed <= pulseDuration)        // keep pulseVel to +/- 3000 if pulseDuration hasn't ran out
   {
     if (!driven)
     {
@@ -181,18 +182,18 @@ void pulseGuide()
     }
     if (pulseDirection == 1)
     {
-      corrVel = -3000;
+      pulseVel = -3000;
     }
 
     if (pulseDirection == 2)
     {
-      corrVel = 3000;
+      pulseVel = 3000;
     }
   }
   else  //
   {
     timer = 0;
-    corrVel = 0;
+    pulseVel = 0;
     pulseDuration = 0;
     sysState = 1; //continue tracking
     return;
@@ -209,10 +210,7 @@ static void buttonHandler(uint8_t btnId, uint8_t btnState) {
       if (sysState == 1) {
         sysState = 0;            // Pause state
       }
-      else if (sysState == 3){   //when in Adjust state this button creates pulse to West 500 ms (+)
-        //pulseDuration += 500;
-        //pulseDirection = 2;
-        //timer = millis();
+      else if (sysState == 3){ 
         corrVel += 10;
       }
       else {
@@ -224,10 +222,7 @@ static void buttonHandler(uint8_t btnId, uint8_t btnState) {
       if (sysState == 2) { 
         sysState = 0;              // sysetm Pause state (from rewind)
       }
-      else if (sysState == 3){   //when in Adjust state this button creates Pulse to East 500 ms (-)
-        //pulseDuration += 500;
-        //pulseDirection = 1;
-        //timer = millis();
+      else if (sysState == 3){ 
         corrVel -= 10;
       }
       else {
@@ -430,9 +425,10 @@ void loop() {
     {
       sysState = 2;           //auto rewind at end
     }
-    else if (distance <= 65 && sysState == 2)   //auto stop athome when rewinding, set atHome
+    else if (distance <= 65 && sysState == 2)   //auto stop athome when rewinding, set atHome, set driven = true
     {
       sysState = 4;
+      driven = true;
     }
   }
   //read buttons
@@ -441,10 +437,10 @@ void loop() {
   {
     targetVel = 0;
   }
-  else if (sysState == 1 || sysState == 3) // GO is pressed once, also if pulseGuide was sent
+  else if (sysState == 1 || sysState == 3 || sysState == 5) // GO is pressed once, currently correcting tracking, also if pulseGuide was sent
   {
-    targetVel = fVel + corrVel; //apply velocity corrections
-    if (sysState == 3) 
+    targetVel = fVel + corrVel + pulseVel; //apply velocity corrections
+    if (sysState == 5) 
     {
       pulseGuide();
     }
@@ -581,7 +577,7 @@ void serialEvent() {
         driver_cmd = Serial.readStringUntil('#');
         pulseDuration = driver_cmd.toInt(); 
         pulseDirection = 1;
-        sysState = 3;
+        sysState = 5;
         timer = millis();
         Serial.print("TRUE#");
       }
@@ -593,7 +589,7 @@ void serialEvent() {
         driver_cmd = Serial.readStringUntil('#');
         pulseDuration = driver_cmd.toInt();
         pulseDirection = 2;                     
-        sysState = 3;
+        sysState = 5;
         timer = millis();
         Serial.print("TRUE#");
       }
