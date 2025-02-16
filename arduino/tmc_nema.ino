@@ -29,8 +29,8 @@ rampLong myRamp;                               // new int ramp object //новы
 VL53L0X sensor;
 
 //constants, max safe rps = 1000000
-const long fVel = 6940;        //driver rps = (desired rps / 0.715) * steps * microsteps ; desired rps = 835 mm : 10 mm (daimeters of segments design by ReinerVogel to shaft)  * 100 (gearbox) revs / 86164 s (sidereal day) 
-const long rVel = -50000;      //rewind velocity 
+const long fVel = 7640;        //driver rps = (desired rps / 0.715) * steps * microsteps ; desired rps = х mm : 10 mm (daimeters of segments design by ReinerVogel to shaft)  * 100 (gearbox) revs / 86164 s (sidereal day) 
+const long rVel = -70000;      //rewind velocity 
 long corrVel = 0;      // correction of targetVel
 long pulseVel = 0; // changed in PulseGuiding
 long targetVelOld = 0;
@@ -52,7 +52,7 @@ bool driven = true; // 1 if connected to ASCOM driver server, 0 if standalone; f
 //leds blink
 void ledBlink(uint8_t blinkMode) {
   unsigned long currentMillis = millis();
-  // все 3 светдиода мигают раз в секунду, обозначает паузу, sysState 0 или 4
+  // все 3 светдиода мигают раз в секунду, обозначает паузу sysState 0 или положение atHome sysState 4
   if (blinkMode == 0 || blinkMode == 4 ){
     switch (currentMillis % 1000)
       {
@@ -249,7 +249,7 @@ static void longPressHandler(uint8_t btnId, uint8_t btnState) {
     {
       Serial.println("Adjust Button pressed and held a long time, corrVel set to 0");
     }
-    driven = false;
+    driven = true;
     corrVel = 0;
   } else {
     // btnState == BTN_OPEN.
@@ -425,7 +425,7 @@ void loop() {
     {
       sysState = 2;           //auto rewind at end
     }
-    else if (distance <= 65 && sysState == 2)   //auto stop athome when rewinding, set atHome, set driven = true
+    else if (distance <= 45 && sysState == 2)   //auto stop athome when rewinding, set atHome, set driven = true
     {
       sysState = 4;
       driven = true;
@@ -450,19 +450,11 @@ void loop() {
     targetVel = rVel;
   }
 
-  if (!driven && sysStateDEBUG != sysState)
-  {
-    Serial << "sysState set to: "<< sysState << endl;
-  }
-  sysStateDEBUG = sysState;
-  //blink with LEDs according to sysState
-  ledBlink(sysState);
-
   //change velocity fo motor if needed
   if (targetVel != targetVelOld) // if targetVel was changed
   {
     int rampTime; // set adequate ramp time in ms
-    if (sysState == 3)
+    if (sysState == 5)
     {
       rampTime = 40;      // for pulseGuide 
     }
@@ -488,6 +480,14 @@ void loop() {
     }
   }
   targetVelOld = targetVel;
+
+    if (!driven && sysStateDEBUG != sysState)
+  {
+    Serial << "sysState set to: "<< sysState << endl;
+  }
+  sysStateDEBUG = sysState;
+  //blink with LEDs according to sysState
+  ledBlink(sysState);
 }
 
  /* SerialEvent occurs whenever a new data comes in the hardware serial RX. The pulses are put out in the form of <direction#duration[in ms]#>. ( ex: "E#400#" )
