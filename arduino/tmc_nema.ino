@@ -29,7 +29,7 @@ rampLong myRamp;                               // new int ramp object //новы
 VL53L0X sensor;
 
 //constants, max safe rps = 1000000
-const long fVel = 7640;        //driver rps = (desired rps / 0.715) * steps * microsteps ; desired rps = х mm : 10 mm (daimeters of segments design by ReinerVogel to shaft)  * 100 (gearbox) revs / 86164 s (sidereal day) 
+const long fVel = 7620;        //driver rps = (desired rps / 0.715) * steps * microsteps ; desired rps = х mm : 10 mm (daimeters of segments design by ReinerVogel to shaft)  * 100 (gearbox) revs / 86164 s (sidereal day) 
 const long rVel = -70000;      //rewind velocity 
 long corrVel = 0;      // correction of targetVel
 long pulseVel = 0; // changed in PulseGuiding
@@ -401,10 +401,10 @@ void loop() {
     if (!sensorAvalible)
     {
       if (!driven)
-    {
+      {
         Serial << "sensor not avalible" << endl;
-    }
-      sysState = 5;                   //TODO : перейти на управление без сенсора
+      }
+
     }
     int distance = sensor.readRangeSingleMillimeters();
     if (abs(distance - prevDistance) >= 2 && !driven ){
@@ -415,17 +415,17 @@ void loop() {
     {
       if (!driven)
     {
-        Serial.print(" TIMEOUT");
+        Serial.print("SENSOR TIMEOUT");
     }
       sensorAvalible = false;
-      return;
+      //return;
     }
   // do distance checks
-    if (distance > 135 && sysState == 1)
+    if (distance > 135 && sysState == 1 && sensorAvalible)
     {
       sysState = 2;           //auto rewind at end
     }
-    else if (distance <= 45 && sysState == 2)   //auto stop athome when rewinding, set atHome, set driven = true
+    else if (distance <= 25 && sysState == 2 && sensorAvalible)   //auto stop athome when rewinding, set atHome, set driven = true
     {
       sysState = 4;
       driven = true;
@@ -624,7 +624,7 @@ void serialEvent() {
 
       else
       {
-        Serial.print("UNKNCOM#");
+        
       }  
 
     }
