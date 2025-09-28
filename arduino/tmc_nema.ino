@@ -202,11 +202,10 @@ void pulseGuide()
 
 // manage system states via button presses
 static void buttonHandler(uint8_t btnId, uint8_t btnState) {
-  if (btnState == BTN_PRESSED) {
+  if (btnState == BTN_OPEN) {
     //btnState == BTN_PRESSED
     if (btnId == GO_BTN_PIN)
     {
-      driven = false;
       if (sysState == 1) {
         sysState = 0;            // Pause state
       }
@@ -245,12 +244,26 @@ static void buttonHandler(uint8_t btnId, uint8_t btnState) {
 static void longPressHandler(uint8_t btnId, uint8_t btnState) {
   if (btnState == BTN_PRESSED) {
     // Send a message after it has been held down a long time.
-    if (!driven)
-    {
-      Serial.println("Adjust Button pressed and held a long time, corrVel set to 0");
+    if (btnId == ADJUST_BTN_PIN) {
+      if (!driven)
+      {
+        Serial.println("Adjust Button pressed and held a long time, corrVel set to 0");
+      }
+      driven = true;
+      corrVel = 0;
     }
-    driven = true;
-    corrVel = 0;
+    if (btnId == GO_BTN_PIN) {
+      if (!driven)
+      {
+        Serial.println("Go Button pressed and held a long time, switch driven");
+      }
+      if (driven){ 
+        driven = false;
+      }
+      if (!driven){ 
+        driven = true;
+      }
+    }
   } else {
     // btnState == BTN_OPEN.
     // Do nothing on button release.
@@ -261,66 +274,12 @@ static void longPressHandler(uint8_t btnId, uint8_t btnState) {
 static void pollButtons() {
   // update() will call buttonHandler() if ***_BTN_PIN transitions to a new state and stays there for multiple reads over 25+ ms.
   // update all 3 buttons:
+  longBtn.update(digitalRead(ADJUST_BTN_PIN));
+  longBtn.update(digitalRead(GO_BTN_PIN));
   buttonGo.update(digitalRead(GO_BTN_PIN));
   buttonRew.update(digitalRead(REW_BTN_PIN));
   buttonAdjust.update(digitalRead(ADJUST_BTN_PIN));
-  longBtn.update(digitalRead(ADJUST_BTN_PIN));
 }
-
-/*static void noSensorMode() {
-  
-  const int rampInterval = 200;             //time between velocity change commands sent by UART
-  int multiplier = 1;
-  unsigned long accelDistance = 0;
-  const long accelTime = 15000; 
-
-  TMCdriver.shaft(dir); // SET DIRECTION 
-
-  if (dir == true){                                       // go forward
-    multiplier = 1;
-    Serial << "multiplier: " << multiplier << endl;                                
-  }
-  if (dir != true){
-    multiplier = 5;                                     // go backward with 5 x speed
-    Serial << "multiplier: " << multiplier << endl;
-  } 
-
-  //accelerate:
-  myRamp.go(0);                                            // set speed to zero 
-  long a = fVel * multiplier;
-  Serial << "a: "<< a << "dir:" << dir << endl;
-  myRamp.go(a, accelTime, QUADRATIC_IN, ONCEFORWARD);      // ramp to maxVel in accelTime
-  long val = 0; 
-  while(val < a){ 
-    Serial << "velocity: "<< val << endl; 
-    TMCdriver.VACTUAL(val);
-    myRamp.update(); 
-    val = myRamp.getValue(); 
-    delay(rampInterval); 
-    accelDistance += rampInterval*val*2;
-  } 
-
-  // run:
-  Serial << "will run for: " << ((900000 / multiplier) - accelDistance / (a)) << endl;
-  delay((900000 / multiplier) - accelDistance / a);                                   //run for 15 minutes minus acceleration time
-
-  //deccelerate:
-  myRamp.go(0, accelTime, QUADRATIC_IN, ONCEFORWARD);      // go to 24000 in 15000 ms 
-  while(val > 0){ 
-    Serial << "velocity: " << val << endl; 
-    TMCdriver.VACTUAL(val);
-    myRamp.update(); 
-    val = myRamp.getValue(); 
-    delay(rampInterval); 
-  }
-  
-  TMCdriver.VACTUAL(0);     //cool down
-  delay(5000);              //for 5 sec
-  dir = !dir;               // REVERSE DIRECTION
-
-}
-
-*/
 
 //== Setup ===============================================================================
 
@@ -335,8 +294,6 @@ void setup() {
   TMCdriver.beginSerial(57600);      // Initialize UART
  
   Serial.flush();
-
-//  logString.reserve(400);
 
 // Set pinmodes
   pinMode(EN_PIN, OUTPUT);           
@@ -421,11 +378,11 @@ void loop() {
       //return;
     }
   // do distance checks
-    if (distance > 135 && sysState == 1 && sensorAvalible)
+    if (distance <=35 && sysState == 1 && sensorAvalible)
     {
       sysState = 2;           //auto rewind at end
     }
-    else if (distance <= 25 && sysState == 2 && sensorAvalible)   //auto stop athome when rewinding, set atHome, set driven = true
+    else if (distance >= 105 && sysState == 2 && sensorAvalible)   //auto stop athome when rewinding, set atHome, set driven = true
     {
       sysState = 4;
       driven = true;
